@@ -10,7 +10,7 @@ require 'chariwt'
 class PledgeKeys
   include Singleton
 
-  attr_accessor :productid, :product_dir, :idevid, :dbroot
+  attr_accessor :productid, :product_dir, :idevid, :dbroot, :testing_capath
 
   def idevid_pubkey
     @idevid_pubkey  ||= load_idevid_pub_key
@@ -18,6 +18,14 @@ class PledgeKeys
 
   def idevid_privkey
     @idevid_privkey ||= load_idevid_priv_key
+  end
+
+  def ldevid_pubkey
+    @ldevid_pubkey  ||= load_ldevid_pub_key
+  end
+
+  def ldevid_privkey
+    @ldevid_privkey ||= load_ldevid_priv_key
   end
 
   def masa_cert
@@ -45,6 +53,8 @@ class PledgeKeys
     FileUtils::mkdir_p(product_dir.to_s)
     @priv_file = @product_dir.join('key.pem')
     @pub_file  = @product_dir.join('device.crt')
+    @lpriv_file     = @product_dir.join('key.pem')  # same private key
+    @lpub_file      = @product_dir.join('ldevice.crt')
     @masa_file      = @product_dir.join('masa.crt')
     @vendorca_file  = @product_dir.join('vendor.crt')
   end
@@ -60,16 +70,28 @@ class PledgeKeys
   def priv_file
     @priv_file ||= priv_dir.join("#{idevid}_#{client_curve}.key")
   end
-
   def pub_file
     @pub_file  ||= pub_dir.join("#{idevid}_#{client_curve}.crt")
   end
+
+  def lpriv_file
+    @lpriv_file ||= priv_dir.join("#{ldevid}_#{client_curve}.key")
+  end
+  def lpub_file
+    @lpub_file  ||= pub_dir.join("#{ldevid}_#{client_curve}.crt")
+  end
+
   def masa_file
     @masa_file ||= pub_dir.join("masa_#{curve}.crt")
   end
 
+  # the base of name of the certificate
   def idevid
     @idevid ||= "pledge"
+  end
+
+  def ldevid
+    @ldevid ||= "lpledge"
   end
 
   def dbroot
@@ -91,6 +113,20 @@ class PledgeKeys
   def load_idevid_priv_key
     privkey_file=File.open(priv_file)
     OpenSSL::PKey.read(privkey_file)
+  end
+
+  def load_ldevid_pub_key
+    lpubkey_file = File.open(lpub_file,'r')
+    OpenSSL::X509::Certificate.new(lpubkey_file)
+  end
+
+  def load_ldevid_priv_key
+    if File.exists?(lpriv_file)
+      lprivkey_file = File.open(lpriv_file)
+    else
+      lprivkey_file = File.open(priv_file)
+    end
+    OpenSSL::PKey.read(lprivkey_file)
   end
 
   def load_masa_pub_cert
