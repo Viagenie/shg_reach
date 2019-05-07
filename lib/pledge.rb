@@ -30,9 +30,10 @@ class Pledge
       when ['application','pkcs7-mime'], ['application','voucher-cms+json']
         @voucher_response_type = :pkcs7
 
-
-        @smimetype = parameters['smime-type']
-        if @smimetype == 'voucher'
+        if ct.sub_type == 'pkcs7-mime'
+          @smimetype = parameters['smime-type']
+        end
+        if ct.sub_type == 'voucher-cms+json' or @smimetype == 'voucher'
           @responsetype = :pkcs7_voucher
           @pkcs7voucher = true
         end
@@ -262,6 +263,7 @@ class Pledge
       end
     end
 
+    request['Accept'] = 'application/voucher-cms+json'
     request.body = smime
     request.content_type = 'application/voucher-cms+json'
     response = http_handler.request request # Net::HTTPResponse object
